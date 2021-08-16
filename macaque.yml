@@ -1,0 +1,61 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: macaque
+spec:
+  selector:
+    matchLabels:
+      app: macaque
+  template:
+    metadata:
+      labels:
+        app: macaque
+    spec:
+      serviceAccountName: macaque
+      containers:
+      - name: macaque
+        image: k0rventen/macaque:latest
+        env:
+          - name: MACAQUE_NAMESPACE
+            value: ""
+          - name: MACAQUE_CRONTAB
+            value: "0 8-18/2 * * 1-5" # monday through friday, every 2 hours from 8AM to 6PM
+          - name: MACAQUE_TIMEZONE
+            value: ""
+          - name: MACAQUE_SLACK_TOKEN
+            value: ""
+          - name: MACAQUE_SLACK_CHANNEL
+            value: ""
+        resources:
+          limits:
+            memory: "32Mi"
+            cpu: "50m"
+---
+apiVersion: v1
+automountServiceAccountToken: true
+kind: ServiceAccount
+metadata:
+  name: macaque
+---
+# RB for the SA
+apiVersion: rbac.authorization.k8s.io/v1
+kind: RoleBinding
+metadata:
+  name: macaque
+subjects:
+- kind: ServiceAccount
+  name: macaque
+roleRef:
+  kind: Role
+  name: macaque
+  apiGroup: rbac.authorization.k8s.io
+---
+# Permissions for the SA
+apiVersion: rbac.authorization.k8s.io/v1
+kind: Role
+metadata:
+  name: macaque
+rules:
+- apiGroups: [""]
+  resources: ["pods"]
+  verbs: ["list", "delete"]
