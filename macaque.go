@@ -96,7 +96,7 @@ func listPods(c MacaqueConfig, k *kubernetes.Clientset) ([]v1.Pod, error) {
 func podKiller(conf MacaqueConfig, ch chan bool, slack_ch chan string) {
 	config, err := rest.InClusterConfig()
 	if err != nil {
-		log.Error("Unable to connect to the cluster", err.Error())
+		log.Error("Unable to retrieve in-cluster configuration", err.Error())
 		slack_ch <- err.Error()
 
 		// this is mandatory, so crash now
@@ -117,6 +117,7 @@ func podKiller(conf MacaqueConfig, ch chan bool, slack_ch chan string) {
 		<-ch
 		podsList, err := listPods(conf, clientset)
 		if err != nil {
+			// the error might be a RBAC related problem, but that can be changed without restarting the pod
 			log.Error(err.Error())
 			slack_ch <- err.Error()
 		} else {
@@ -180,7 +181,7 @@ func setLogging() {
 }
 
 func main() {
-	fmt.Println("\no(..)o  Starting macaque v0.1 !\n  (-) _/\n")
+	fmt.Print("\no(..)o  Starting macaque v0.1 !\n  (-) _/\n\n")
 	// init everything
 	setLogging()
 

@@ -2,6 +2,12 @@
 
 a kubernetes chaos monkey implementation in go.
 
+```
+
+o(..)o   I'm a chaos macaque.
+  (-) __/
+
+```
 
 ## config
 
@@ -20,6 +26,8 @@ Optionnal :
 **IMPORTANT: by default no selector will match any pod in the given namespace**
 
 ## deploy
+
+The image is available for both `amd64` and `arm64`.
 
 make sure your context has the proper namespace, then simply download the deployment spec : 
 
