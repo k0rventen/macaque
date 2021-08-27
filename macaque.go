@@ -51,7 +51,7 @@ func parseConfig() (MacaqueConfig, error) {
 	slack_token := os.Getenv("MACAQUE_SLACK_TOKEN")
 	slack_channel := os.Getenv("MACAQUE_SLACK_CHANNEL")
 	timezone := os.Getenv("MACAQUE_TIMEZONE")
-	pod_name := os.Getenv("HOSTNAME")
+	pod_name := os.Getenv("HOSTNAME") // this one is set by kube
 
 	c := MacaqueConfig{
 		crontab:       crontab,
@@ -83,7 +83,7 @@ func listPods(c MacaqueConfig, k *kubernetes.Clientset) ([]v1.Pod, error) {
 		return nil, err
 	}
 	var podsList []v1.Pod
-	//filter our own pod out, pods not running and pods not up for at least 1m
+	//filter our own pod out & pods not running
 	for _, v := range pods.Items {
 		if v.Name != c.podname && v.Status.Phase == "Running" {
 			podsList = append(podsList, v)
@@ -111,7 +111,7 @@ func podKiller(conf MacaqueConfig, ch chan bool, slack_ch chan string) {
 		// this is mandatory, so crash now
 		os.Exit(1)
 	}
-	log.Info("Waiting for a kill order..")
+	log.Info("Waiting for a termination order..")
 	for {
 		// wait for the signal
 		<-ch
@@ -131,7 +131,6 @@ func podKiller(conf MacaqueConfig, ch chan bool, slack_ch chan string) {
 				index := rng.Intn(len(podsList))
 				choosen_pod := podsList[index]
 
-				//c.kubeclient.CoreV1().Events().Create(context.TODO(),&v1.Event{},metav1.CreateOptions{})
 				err := clientset.CoreV1().Pods(conf.namespace).Delete(context.TODO(), choosen_pod.Name, metav1.DeleteOptions{})
 				log.Info("Pod ", choosen_pod.Name, " has been selected. !")
 				if err != nil {
@@ -166,8 +165,10 @@ func sleepUntilNextCron(conf MacaqueConfig, sch cron.Schedule) {
 	}
 	t := time.Now().In(loc)
 	next_t := sch.Next(t)
+	clean_next_t := next_t.Round(time.Second)
 	delta := next_t.Sub(t)
-	log.Info("sleeping for ", delta)
+	clean_delta := delta.Round(time.Second)
+	log.Info("next occurence at ", clean_next_t, ", sleeping for ", clean_delta)
 	time.Sleep(delta)
 }
 
@@ -176,12 +177,11 @@ func setLogging() {
 	log.SetLevel(log.InfoLevel)
 	log.SetFormatter(&log.TextFormatter{
 		DisableColors: true,
-		FullTimestamp: true,
 	})
 }
 
 func main() {
-	fmt.Print("\no(..)o  Starting macaque v0.1 !\n  (-) _/\n\n")
+	fmt.Print("\no(..)o  Starting macaque v0.2 !\n  (-) _/\n\n")
 	// init everything
 	setLogging()
 
@@ -194,6 +194,7 @@ func main() {
 	if err != nil {
 		log.Fatal("Unable to parse cron format: ", err.Error())
 	}
+	log.Info("cron schedule is '", config.crontab, "'")
 
 	kill_channel := make(chan bool)
 	message_channel := make(chan string)
