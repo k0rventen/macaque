@@ -1,6 +1,6 @@
 # macaque
 
-a kubernetes chaos monkey implementation in go.
+a kubernetes [chaos monkey]("https://netflix.github.io/chaosmonkey/") implementation in go.
 
 ```
 
@@ -15,7 +15,6 @@ configuration is done through env vars:
 
 Mandatory :
 - `MACAQUE_CRONTAB`: the crontab spec that macaque will use (eg 0 * * * * for running each hour)
-- `MACAQUE_NAMESPACE`: the namespace to use
 
 Optionnal : 
 - `MACAQUE_SELECTOR`: optionnal, the kubernetes pod selector to use if you want to select pods in `app=foo` format,
@@ -27,11 +26,15 @@ Optionnal :
 
 ## deploy
 
-The image is available for both `amd64` and `arm64`.
+The image is available for both `amd64` and `arm64`. To install, download the spec yaml, edit and apply : 
 
-make sure your context has the proper namespace, then simply download the deployment spec : 
+```
+# download the spec file
+curl -LO https://raw.githubusercontent.com/k0rventen/macaque/main/macaque.yml
 
-`curl -LO https://raw.githubusercontent.com/k0rventen/macaque/main/macaque.yml`
+# edit the env vars to match your config
+$EDITOR macaque.yml
 
-edit the env vars, then just `kubectl apply -f macaque.yml`
-
+# apply (make sure you are in the right ns)
+kubectl apply -f macaque.yml
+```
