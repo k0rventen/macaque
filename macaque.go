@@ -201,8 +201,6 @@ func main() {
 	go podKiller(config, kill_channel, message_channel)
 	go slackSender(config, message_channel)
 
-	message_channel <- "Macaque is up and running!"
-
 	for {
 		// wait for the next cron occurence, then notify the killer routine
 		sleepUntilNextCron(config, schedule)

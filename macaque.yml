@@ -19,11 +19,11 @@ spec:
           - name: MACAQUE_CRONTAB
             value: "0 8-18/2 * * 1-5" # monday through friday, every 2 hours from 8 to 18
           - name: MACAQUE_SELECTOR
-            value: "" # app=foo or every pod in the ns by default
+            value: "macaque=killme" # app=foo or every pod in the ns if empty
           - name: MACAQUE_TIMEZONE
-            value: "" # utc by default or something like Europe/Paris
+            value: "" # UTC by default or something like Europe/Paris
           - name: MACAQUE_SLACK_TOKEN
-            value: "" 
+            value: ""
           - name: MACAQUE_SLACK_CHANNEL
             value: "" 
           - name: MACAQUE_NAMESPACE
@@ -33,7 +33,7 @@ spec:
         resources:
           limits:
             memory: "16Mi"
-            cpu: "50m"
+            cpu: "25m"
 ---
 apiVersion: v1
 automountServiceAccountToken: true

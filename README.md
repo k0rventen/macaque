@@ -17,24 +17,21 @@ Mandatory :
 - `MACAQUE_CRONTAB`: the crontab spec that macaque will use (eg 0 * * * * for running each hour)
 
 Optionnal : 
-- `MACAQUE_SELECTOR`: optionnal, the kubernetes pod selector to use if you want to select pods in `app=foo` format,
-- `MACAQUE_SLACK_TOKEN`: optionnal, the slack bot token for sending messages on slack,
-- `MACAQUE_SLACK_CHANNEL`: optionnal, the slack channel ID,
-- `MACAQUE_TIMEZONE`: optionnal, the timezone to use if you are not on UTC in `Region/City` format. (defaults to UTC)
+- `MACAQUE_SELECTOR`: the kubernetes pod selector to use if you want to select pods in `app=foo` format **(by default no selector will match any pod in the given namespace)**
 
-**IMPORTANT: by default no selector will match any pod in the given namespace**
+- `MACAQUE_SLACK_TOKEN`: the slack bot token for sending messages on slack,
+- `MACAQUE_SLACK_CHANNEL`: the slack channel ID,
+- `MACAQUE_TIMEZONE`: the timezone to use in `Region/City` format. (defaults to UTC
+
 
 ## deploy
 
-The image is available for both `amd64` and `arm64`. To install, download the spec yaml, edit and apply : 
+The image is available for both `amd64` and `arm64`. To install : 
 
 ```
-# download the spec file
-curl -LO https://raw.githubusercontent.com/k0rventen/macaque/main/macaque.yml
+# apply in the proper namespace
+kubectl apply -f https://raw.githubusercontent.com/k0rventen/macaque/main/macaque.yml
 
-# edit the env vars to match your config
-$EDITOR macaque.yml
-
-# apply (make sure you are in the right ns)
-kubectl apply -f macaque.yml
+# edit the deployment env vars if necessary
+kubectl edit deploy macaque
 ```
