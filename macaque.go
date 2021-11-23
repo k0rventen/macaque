@@ -2,6 +2,7 @@ package main
 
 import (
 	"context"
+	"flag"
 	"fmt"
 	"math/rand"
 	"os"
@@ -35,32 +36,39 @@ func (c *MacaqueConfig) HasSlack() bool {
 	return false
 }
 
-func (c *MacaqueConfig) IsValid() bool {
-	_, cronNotValid := parseCron(c.crontab)
-	if cronNotValid != nil || c.namespace == "" {
-		return false
-	}
-	return true
-}
-
-// parse the config from env var and returns a MacaqueConfig struct
+// parse the config and returns a MacaqueConfig struct
 func parseConfig() (MacaqueConfig, error) {
-	crontab := os.Getenv("MACAQUE_CRONTAB")
-	selector := os.Getenv("MACAQUE_SELECTOR")
-	namespace := os.Getenv("MACAQUE_NAMESPACE")
-	slack_token := os.Getenv("MACAQUE_SLACK_TOKEN")
-	slack_channel := os.Getenv("MACAQUE_SLACK_CHANNEL")
-	timezone := os.Getenv("MACAQUE_TIMEZONE")
+
+	// parse from cli and default to env
+	crontabPtr := flag.String("crontab", os.Getenv("MACAQUE_CRONTAB"), "env 'MACAQUE_CRONTAB'\ncrontab spec for macaque, eg 0 * * * * for every hour.\n")
+	selectorPtr := flag.String("selector", os.Getenv("MACAQUE_SELECTOR"), "env 'MACAQUE_SELECTOR'\noptionnal pod selector to use in app=foo format\n(no selector will match any pod in the given namespace).\n")
+	namespacePtr := flag.String("namespace", os.Getenv("MACAQUE_NAMESPACE"), "env 'MACAQUE_NAMESPACE'\noptionnal namespace in which to look for pods\n(if undefined, uses the ns from the service account).\n")
+	timezonePtr := flag.String("timezone", os.Getenv("MACAQUE_TIMEZONE"), "env 'MACAQUE_TIMEZONE'\noptionnal timezone to use, eg Europe/Paris (defaults to UTC).\n")
+	slack_tokenPtr := flag.String("slack-token", os.Getenv("MACAQUE_SLACK_TOKEN"), "env 'MACAQUE_SLACK_TOKEN'\noptionnal slack bot token.\n")
+	slack_channelPtr := flag.String("slack-channel", os.Getenv("MACAQUE_SLACK_CHANNEL"), "env 'MACAQUE_SLACK_CHANNEL'\noptionnal slack channel id.\n")
+	flag.Parse()
+
 	pod_name := os.Getenv("HOSTNAME") // this one is set by kube
 
+	// if namespace is empty, use the one provided by kube at /var/run/secrets/kubernetes.io/serviceaccount/namespace
+	if *namespacePtr == "" {
+		log.Debug("no namespace defined")
+		raw, err := os.ReadFile("/var/run/secrets/kubernetes.io/serviceaccount/namespace")
+		if err != nil {
+			log.Error("no namespace provided and service account ns file not present")
+			return MacaqueConfig{}, err
+		}
+		*namespacePtr = string(raw)
+	}
+
 	c := MacaqueConfig{
-		crontab:       crontab,
-		namespace:     namespace,
-		selector:      selector,
+		crontab:       *crontabPtr,
+		namespace:     *namespacePtr,
+		selector:      *selectorPtr,
 		podname:       pod_name,
-		timezone:      timezone,
-		slack_token:   slack_token,
-		slack_channel: slack_channel,
+		timezone:      *timezonePtr,
+		slack_token:   *slack_tokenPtr,
+		slack_channel: *slack_channelPtr,
 	}
 	return c, nil
 }
@@ -97,8 +105,6 @@ func podKiller(conf MacaqueConfig, ch chan bool, slack_ch chan string) {
 	config, err := rest.InClusterConfig()
 	if err != nil {
 		log.Error("Unable to retrieve in-cluster configuration", err.Error())
-		slack_ch <- err.Error()
-
 		// this is mandatory, so crash now
 		os.Exit(1)
 	}
@@ -106,12 +112,9 @@ func podKiller(conf MacaqueConfig, ch chan bool, slack_ch chan string) {
 	clientset, err := kubernetes.NewForConfig(config)
 	if err != nil {
 		log.Error("Unable to connect to the cluster", err.Error())
-		slack_ch <- err.Error()
-
-		// this is mandatory, so crash now
+		// this is also mandatory, so crash now
 		os.Exit(1)
 	}
-	log.Info("Waiting for a termination order..")
 	for {
 		// wait for the signal
 		<-ch
@@ -132,7 +135,7 @@ func podKiller(conf MacaqueConfig, ch chan bool, slack_ch chan string) {
 				choosen_pod := podsList[index]
 
 				err := clientset.CoreV1().Pods(conf.namespace).Delete(context.TODO(), choosen_pod.Name, metav1.DeleteOptions{})
-				log.Info("Pod ", choosen_pod.Name, " has been selected. !")
+				log.Info("Pod ", choosen_pod.Name, " has been terminated.")
 				if err != nil {
 					log.Error(err.Error())
 				}
@@ -172,18 +175,12 @@ func sleepUntilNextCron(conf MacaqueConfig, sch cron.Schedule) {
 	time.Sleep(delta)
 }
 
-func setLogging() {
+func main() {
+	fmt.Print("\no(..)o  Starting macaque v0.3 !\n  (-) _/\n\n")
+	// init everything
 	log.SetOutput(os.Stdout)
 	log.SetLevel(log.InfoLevel)
-	log.SetFormatter(&log.TextFormatter{
-		DisableColors: true,
-	})
-}
-
-func main() {
-	fmt.Print("\no(..)o  Starting macaque v0.2 !\n  (-) _/\n\n")
-	// init everything
-	setLogging()
+	log.SetFormatter(&log.TextFormatter{DisableColors: true})
 
 	config, err := parseConfig()
 	if err != nil {
@@ -194,10 +191,14 @@ func main() {
 	if err != nil {
 		log.Fatal("Unable to parse cron format: ", err.Error())
 	}
-	log.Info("cron schedule is '", config.crontab, "'")
+	log.Info("cron schedule: ", config.crontab)
+	log.Info("namespace:     ", config.namespace)
+	log.Info("pod selector:  ", config.selector)
+	log.Info("timezone:      ", config.timezone)
 
 	kill_channel := make(chan bool)
 	message_channel := make(chan string)
+
 	go podKiller(config, kill_channel, message_channel)
 	go slackSender(config, message_channel)
 
