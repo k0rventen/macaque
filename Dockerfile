@@ -1,11 +1,11 @@
 # build layer
-FROM golang:alpine as builder
+FROM golang:1.17-alpine as builder
 RUN apk add tzdata
 WORKDIR /build
 COPY go.mod go.sum ./
 RUN go mod download
 COPY macaque.go ./
-RUN CGO_ENABLED=0 go build -a -o macaque .
+RUN CGO_ENABLED=0 go build -o macaque .
 
 # end layer
 FROM scratch
