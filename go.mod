@@ -1,6 +1,6 @@
 module github.com/k0rventen/macaque
 
-go 1.17
+go 1.18
 
 require (
 	github.com/jbogarin/go-cisco-webex-teams v0.4.2
