@@ -1,11 +1,11 @@
 # build layer
-FROM golang:1.18-alpine as builder
-RUN apk add tzdata upx
+FROM golang:1.18-bullseye as builder
+RUN apt update && apt install upx-ucl tzdata ca-certificates -y --no-install-recommends
 WORKDIR /build
 COPY go.mod go.sum ./
 RUN go mod download
 COPY macaque.go ./
-RUN go build -ldflags="-s -w" -o macaque .
+RUN CGO_ENABLED=0 go build -ldflags="-s -w" -o macaque .
 RUN upx macaque
 
 # end layer
