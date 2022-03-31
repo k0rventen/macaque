@@ -7,7 +7,7 @@ o(..)o   I'm a chaos macaque.
   (-) __/
 ```
 
-macaque runs in-cluster, uses a crontab for its schedule, can send kill confirmation to slack, and select pods based on labels.
+macaque runs in-cluster, uses a crontab for its schedule, can send kill confirmation to slack/webex, and select pods based on labels.
 
 ## deploy
 
@@ -31,7 +31,7 @@ Usage of macaque:
   -crontab string
         env 'MACAQUE_CRONTAB'
         crontab spec for macaque, eg 0 * * * * for every hour.
-
+    
   -namespace string
         env 'MACAQUE_NAMESPACE'
         optionnal namespace in which to look for pods
@@ -53,4 +53,12 @@ Usage of macaque:
   -timezone string
         env 'MACAQUE_TIMEZONE'
         optionnal timezone to use, eg Europe/Paris (defaults to UTC).
+    
+  -webex-room-id string
+        env 'MACAQUE_WEBEX_ROOM_ID'
+        optionnal webex room id.
+    
+  -webex-token string
+        env 'MACAQUE_WEBEX_TOKEN'
+        optionnal webex bot token.
 ```
