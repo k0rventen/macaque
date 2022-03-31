@@ -51,14 +51,16 @@ func (c *MacaqueConfig) HasWebex() bool {
 func parseConfig() (MacaqueConfig, error) {
 
 	// parse from cli and default to env
-	crontabPtr := flag.String("crontab", os.Getenv("MACAQUE_CRONTAB"), "env 'MACAQUE_CRONTAB'\ncrontab spec for macaque, eg 0 * * * * for every hour.\n")
-	selectorPtr := flag.String("selector", os.Getenv("MACAQUE_SELECTOR"), "env 'MACAQUE_SELECTOR'\noptionnal pod selector to use in app=foo format\n(no selector will match any pod in the given namespace).\n")
-	namespacePtr := flag.String("namespace", os.Getenv("MACAQUE_NAMESPACE"), "env 'MACAQUE_NAMESPACE'\noptionnal namespace in which to look for pods\n(if undefined, uses the ns from the service account).\n")
-	timezonePtr := flag.String("timezone", os.Getenv("MACAQUE_TIMEZONE"), "env 'MACAQUE_TIMEZONE'\noptionnal timezone to use, eg Europe/Paris (defaults to UTC).\n")
-	slack_tokenPtr := flag.String("slack-token", os.Getenv("MACAQUE_SLACK_TOKEN"), "env 'MACAQUE_SLACK_TOKEN'\noptionnal slack bot token.\n")
-	slack_channelPtr := flag.String("slack-channel", os.Getenv("MACAQUE_SLACK_CHANNEL"), "env 'MACAQUE_SLACK_CHANNEL'\noptionnal slack channel id.\n")
-	webex_tokenPtr := flag.String("webex-token", os.Getenv("MACAQUE_WEBEX_TOKEN"), "env 'MACAQUE_WEBEX_TOKEN'\noptionnal webex bot token.\n")
-	webex_room_idPtr := flag.String("webex-room-id", os.Getenv("MACAQUE_WEBEX_ROOM_ID"), "env 'MACAQUE_WEBEX_ROOM_ID'\noptionnal webex room id.\n")
+	crontabPtr := flag.String("crontab", os.Getenv("MACAQUE_CRONTAB"), "env 'MACAQUE_CRONTAB'\ncrontab spec for macaque, eg '0 9-17 * * 1-5' will kill a pod every hour from 9 to 5, monday to friday\n")
+	selectorPtr := flag.String("selector", os.Getenv("MACAQUE_SELECTOR"), "env 'MACAQUE_SELECTOR'\noptionnal pod selector to use in app=foo format\n(no selector will match any pod in the given namespace)\n")
+	namespacePtr := flag.String("namespace", os.Getenv("MACAQUE_NAMESPACE"), "env 'MACAQUE_NAMESPACE'\noptionnal namespace in which to look for pods\n(if undefined, uses the ns from the service account)\n")
+	timezonePtr := flag.String("timezone", os.Getenv("MACAQUE_TIMEZONE"), "env 'MACAQUE_TIMEZONE'\noptionnal timezone to use, eg Europe/Paris (defaults to UTC)\n")
+
+	slack_tokenPtr := flag.String("slack-token", os.Getenv("MACAQUE_SLACK_TOKEN"), "env 'MACAQUE_SLACK_TOKEN'\noptionnal slack bot token\n")
+	slack_channelPtr := flag.String("slack-channel", os.Getenv("MACAQUE_SLACK_CHANNEL"), "env 'MACAQUE_SLACK_CHANNEL'\noptionnal slack channel id\n")
+
+	webex_tokenPtr := flag.String("webex-token", os.Getenv("MACAQUE_WEBEX_TOKEN"), "env 'MACAQUE_WEBEX_TOKEN'\noptionnal webex bot token\n")
+	webex_room_idPtr := flag.String("webex-room-id", os.Getenv("MACAQUE_WEBEX_ROOM_ID"), "env 'MACAQUE_WEBEX_ROOM_ID'\noptionnal webex room id\n")
 
 	flag.Parse()
 
