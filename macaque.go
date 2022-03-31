@@ -8,6 +8,7 @@ import (
 	"os"
 	"time"
 
+	webexteams "github.com/jbogarin/go-cisco-webex-teams/sdk"
 	cron "github.com/robfig/cron/v3"
 	log "github.com/sirupsen/logrus"
 	slack "github.com/slack-go/slack"
@@ -25,12 +26,22 @@ type MacaqueConfig struct {
 	podname       string
 	slack_token   string
 	slack_channel string
+	webex_token   string
+	webex_room_id string
 	timezone      string
 }
 
 // returns true if slack variables are not empty
 func (c *MacaqueConfig) HasSlack() bool {
 	if c.slack_channel != "" && c.slack_token != "" {
+		return true
+	}
+	return false
+}
+
+// returns true if webex variables are not empty
+func (c *MacaqueConfig) HasWebex() bool {
+	if c.webex_token != "" && c.webex_room_id != "" {
 		return true
 	}
 	return false
@@ -46,6 +57,9 @@ func parseConfig() (MacaqueConfig, error) {
 	timezonePtr := flag.String("timezone", os.Getenv("MACAQUE_TIMEZONE"), "env 'MACAQUE_TIMEZONE'\noptionnal timezone to use, eg Europe/Paris (defaults to UTC).\n")
 	slack_tokenPtr := flag.String("slack-token", os.Getenv("MACAQUE_SLACK_TOKEN"), "env 'MACAQUE_SLACK_TOKEN'\noptionnal slack bot token.\n")
 	slack_channelPtr := flag.String("slack-channel", os.Getenv("MACAQUE_SLACK_CHANNEL"), "env 'MACAQUE_SLACK_CHANNEL'\noptionnal slack channel id.\n")
+	webex_tokenPtr := flag.String("webex-token", os.Getenv("MACAQUE_WEBEX_TOKEN"), "env 'MACAQUE_WEBEX_TOKEN'\noptionnal webex bot token.\n")
+	webex_room_idPtr := flag.String("webex-room-id", os.Getenv("MACAQUE_WEBEX_ROOM_ID"), "env 'MACAQUE_WEBEX_ROOM_ID'\noptionnal webex room id.\n")
+
 	flag.Parse()
 
 	pod_name := os.Getenv("HOSTNAME") // this one is set by kube
@@ -69,6 +83,8 @@ func parseConfig() (MacaqueConfig, error) {
 		timezone:      *timezonePtr,
 		slack_token:   *slack_tokenPtr,
 		slack_channel: *slack_channelPtr,
+		webex_token:   *webex_tokenPtr,
+		webex_room_id: *webex_room_idPtr,
 	}
 	return c, nil
 }
@@ -146,16 +162,38 @@ func podKiller(conf MacaqueConfig, ch chan bool, slack_ch chan string) {
 }
 
 // sends message from the channel to slack
-func slackSender(conf MacaqueConfig, ch chan string) {
+func slackSender(conf MacaqueConfig, message string) {
+	api := slack.New(conf.slack_token)
+	_, _, _, err := api.SendMessage(conf.slack_channel, slack.MsgOptionText(message, false))
+	if err != nil {
+		log.Error(err.Error())
+	}
+}
+
+func notifier(conf MacaqueConfig, ch chan string) {
 	for {
 		msg := <-ch
 		if conf.HasSlack() {
-			api := slack.New(conf.slack_token)
-			_, _, _, err := api.SendMessage(conf.slack_channel, slack.MsgOptionText(msg, false))
-			if err != nil {
-				log.Error(err.Error())
-			}
+			slackSender(conf, msg)
 		}
+		if conf.HasWebex() {
+			webexSender(conf, msg)
+		}
+	}
+}
+
+// webex channel
+func webexSender(conf MacaqueConfig, message string) {
+	webexClient := webexteams.NewClient()
+	webexClient.SetAuthToken(conf.webex_token)
+
+	webex_message := &webexteams.MessageCreateRequest{
+		Text:   message,
+		RoomID: conf.webex_room_id,
+	}
+	_, _, err := webexClient.Messages.CreateMessage(webex_message)
+	if err != nil {
+		log.Error(err)
 	}
 }
 
@@ -176,7 +214,7 @@ func sleepUntilNextCron(conf MacaqueConfig, sch cron.Schedule) {
 }
 
 func main() {
-	fmt.Print("\no(..)o  Starting macaque v0.3 !\n  (-) _/\n\n")
+	fmt.Print("\no(..)o  Starting macaque v0.4 !\n  (-) _/\n\n")
 	// init everything
 	log.SetOutput(os.Stdout)
 	log.SetLevel(log.InfoLevel)
@@ -200,7 +238,7 @@ func main() {
 	message_channel := make(chan string)
 
 	go podKiller(config, kill_channel, message_channel)
-	go slackSender(config, message_channel)
+	go notifier(config, message_channel)
 
 	for {
 		// wait for the next cron occurence, then notify the killer routine
