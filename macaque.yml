@@ -21,8 +21,8 @@ spec:
           - "-selector=macaque=killme"
         resources:
           limits:
-            memory: "16Mi"
-            cpu: "25m"
+            memory: "32Mi"
+            cpu: "50m"
 ---
 apiVersion: v1
 automountServiceAccountToken: true
