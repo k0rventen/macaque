@@ -216,7 +216,7 @@ func sleepUntilNextCron(conf MacaqueConfig, sch cron.Schedule) {
 }
 
 func main() {
-	fmt.Print("\no(..)o  Starting macaque v0.4 !\n  (-) _/\n\n")
+	fmt.Print("\no(..)o  Starting macaque v0.5 !\n  (-) _/\n\n")
 	// init everything
 	log.SetOutput(os.Stdout)
 	log.SetLevel(log.InfoLevel)

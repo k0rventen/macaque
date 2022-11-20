@@ -1,5 +1,5 @@
 # build layer
-FROM golang:1.18-bullseye as builder
+FROM golang:1.19-bullseye as builder
 RUN apt update && apt install upx-ucl tzdata ca-certificates -y --no-install-recommends
 WORKDIR /build
 COPY go.mod go.sum ./
